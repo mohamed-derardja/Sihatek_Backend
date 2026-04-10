@@ -4,9 +4,6 @@ import { authorize } from '../middlewares/role.middleware.js';
 
 const router = Router();
 
-// TODO: Import controllers
-// const doctorController = require('../controllers/doctorController');
-
 // Get all doctors
 router.get('/', asyncHandler(async (req, res) => {
   // Get paginated list of doctors (public or filtered)

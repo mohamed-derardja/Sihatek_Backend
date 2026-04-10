@@ -4,9 +4,6 @@ import { authorize } from '../middlewares/role.middleware.js';
 
 const router = Router();
 
-// TODO: Import controllers
-// const accessCodeController = require('../controllers/accessCodeController');
-
 // Get all access codes (admin)
 router.get('/', authenticate, authorize(['admin']),
   // Get all access codes

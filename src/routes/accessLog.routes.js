@@ -4,9 +4,6 @@ import { authorize } from '../middlewares/role.middleware.js';
 
 const router = Router();
 
-// TODO: Import controllers
-// const accessLogController = require('../controllers/accessLogController');
-
 // Get all access logs (admin)
 router.get('/', authenticate, authorize(['admin']), asyncHandler(async (req, res) => {
   // Get all access logs
