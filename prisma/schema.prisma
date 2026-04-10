@@ -375,6 +375,8 @@ model Notification {
     userId    Int
     message   String
     type      String
+    title     String?
+    data      String?  // JSON stringified data
     isRead    Boolean  @default(false)
 
     createdAt DateTime @default(now())

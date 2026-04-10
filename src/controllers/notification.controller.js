@@ -7,7 +7,7 @@ const parseId = (value) => {
     return Number.isFinite(id) && id > 0 ? id : null;
 };
 
-export const createNotification = async ({ userId, message, type }) => {
+export const createNotification = async ({ userId, message, type, title, data }) => {
     if (!userId || !message || !type) {
         return { ok: false, reason: 'missing_fields' };
     }
@@ -18,11 +18,14 @@ export const createNotification = async ({ userId, message, type }) => {
                 userId,
                 message,
                 type,
+                title: title || type,
+                data: data ? JSON.stringify(data) : null,
                 isRead: false,
             },
         });
         return { ok: true, notification };
     } catch (error) {
+        console.error('Error creating notification:', error);
         return { ok: false, reason: 'creation_failed', error };
     }
 };

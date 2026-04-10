@@ -1,6 +1,7 @@
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { AppError } from '../utils/AppError.js';
 import prisma from '../config/prisma.js';
+import { createNotification } from './notification.controller.js';
 
 const parseId = (value) => {
     const id = Number.parseInt(value, 10);
@@ -59,6 +60,19 @@ export const acceptDoctor = asyncHandler(async (req, res) => {
         include: { doctor: true },
     });
 
+    // Send notification to doctor about approval
+    try {
+        await createNotification({
+            userId: updated.id,
+            type: 'doctor_approved',
+            title: 'Registration Approved',
+            message: 'Your doctor registration has been approved. You can now access the system.',
+            data: { userId, role: 'doctor' }
+        });
+    } catch (error) {
+        console.error('Failed to create notification:', error);
+    }
+
     res.status(200).json({
         success: true,
         code: 'DOCTOR_APPROVED',
@@ -85,6 +99,19 @@ export const rejectDoctor = asyncHandler(async (req, res) => {
         data: { status: 'rejected' },
         include: { doctor: true },
     });
+
+    // Send notification to doctor about rejection
+    try {
+        await createNotification({
+            userId: updated.id,
+            type: 'doctor_rejected',
+            title: 'Registration Rejected',
+            message: 'Your doctor registration has been rejected. Please contact support for more information.',
+            data: { userId, role: 'doctor' }
+        });
+    } catch (error) {
+        console.error('Failed to create notification:', error);
+    }
 
     res.status(200).json({
         success: true,
@@ -146,6 +173,19 @@ export const acceptPharmacy = asyncHandler(async (req, res) => {
         include: { pharmacist: true },
     });
 
+    // Send notification to pharmacist about approval
+    try {
+        await createNotification({
+            userId: updated.id,
+            type: 'pharmacist_approved',
+            title: 'Registration Approved',
+            message: 'Your pharmacist registration has been approved. You can now access the system.',
+            data: { userId, role: 'pharmacist' }
+        });
+    } catch (error) {
+        console.error('Failed to create notification:', error);
+    }
+
     res.status(200).json({
         success: true,
         code: 'PHARMACIST_APPROVED',
@@ -172,7 +212,18 @@ export const rejectPharmacy = asyncHandler(async (req, res) => {
         data: { status: 'rejected' },
         include: { pharmacist: true },
     });
-
+    // Send notification to pharmacist about rejection
+    try {
+        await createNotification({
+            userId: updated.id,
+            type: 'pharmacist_rejected',
+            title: 'Registration Rejected',
+            message: 'Your pharmacist registration has been rejected. Please contact support for more information.',
+            data: { userId, role: 'pharmacist' }
+        });
+    } catch (error) {
+        console.error('Failed to create notification:', error);
+    }
     res.status(200).json({
         success: true,
         code: 'PHARMACIST_REJECTED',

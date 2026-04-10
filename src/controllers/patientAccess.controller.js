@@ -1,6 +1,7 @@
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { AppError } from '../utils/AppError.js';
 import * as PatientAccess from '../models/PatientAccess.js';
+import { createNotification } from './notification.controller.js';
 
 export const createAccessRequest = asyncHandler(async (req, res) => {
     if (req.user.role !== 'doctor') {
@@ -115,6 +116,25 @@ export const respondToRequest = asyncHandler(async (req, res) => {
         throw new AppError('Invalid request', 400, 'INVALID_PAYLOAD');
     }
 
+    // Send notification to doctor about patient's response
+    try {
+        const notificationType = status === 'approved' ? 'access_approved' : 'access_rejected';
+        const notificationMessage = status === 'approved' 
+            ? 'Your access request has been approved' 
+            : 'Your access request has been rejected';
+        
+        await createNotification({
+            userId: result.request.doctorUserId,
+            type: notificationType,
+            title: 'Access Request ' + (status === 'approved' ? 'Approved' : 'Rejected'),
+            message: notificationMessage,
+            data: { requestId: result.request.id, patientUserId: result.request.patientUserId }
+        });
+    } catch (error) {
+        console.error('Failed to create notification:', error);
+        // Don't fail the main operation if notification fails
+    }
+
     res.status(200).json({
         success: true,
         code: 'ACCESS_REQUEST_UPDATED',
@@ -156,6 +176,20 @@ export const revokeGrant = asyncHandler(async (req, res) => {
             throw new AppError('Access grant not found', 404, 'ACCESS_GRANT_NOT_FOUND');
         }
         throw new AppError('Invalid request', 400, 'INVALID_PAYLOAD');
+    }
+
+    // Send notification to doctor about access revocation
+    try {
+        await createNotification({
+            userId: result.grant.doctorId,
+            type: 'access_blocked',
+            title: 'Access Revoked',
+            message: 'Patient has revoked your access to their medical data',
+            data: { grantId: result.grant.id, patientId: result.grant.patientId }
+        });
+    } catch (error) {
+        console.error('Failed to create notification:', error);
+        // Don't fail the main operation if notification fails
     }
 
     res.status(200).json({

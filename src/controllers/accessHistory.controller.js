@@ -1,6 +1,7 @@
 import prisma from '../config/prisma.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { AppError } from '../utils/AppError.js';
+import { createNotification } from './notification.controller.js';
 
 const parseId = (value) => {
     const id = Number.parseInt(value, 10);
@@ -92,6 +93,20 @@ export const blockAccessToDoctor = asyncHandler(async (req, res) => {
         data: { isActive: false },
         include: { doctor: { include: { user: true } } },
     });
+
+    // Send notification to doctor about being blocked
+    try {
+        await createNotification({
+            userId: updated.doctor.userId,
+            type: 'access_blocked',
+            title: 'Access Blocked',
+            message: 'Patient has blocked your access to their medical data',
+            data: { grantId: updated.id, patientId: patientId }
+        });
+    } catch (error) {
+        console.error('Failed to create notification:', error);
+        // Don't fail the main operation if notification fails
+    }
 
     res.status(200).json({
         success: true,

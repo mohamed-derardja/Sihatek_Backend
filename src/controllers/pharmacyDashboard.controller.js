@@ -1,6 +1,7 @@
 import prisma from '../config/prisma.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { AppError } from '../utils/AppError.js';
+import { createNotification } from './notification.controller.js';
 
 const parseId = (value) => {
     const id = Number.parseInt(value, 10);
@@ -213,6 +214,25 @@ export const respondToDrugRequest = asyncHandler(async (req, res) => {
                 available: isAvailable,
             },
         });
+    }
+
+    // Send notification to patient about drug availability
+    try {
+        const notificationType = isAvailable ? 'drug_available' : 'drug_unavailable';
+        const notificationMessage = isAvailable 
+            ? `${drugRequest.drug.name} is available at a nearby pharmacy`
+            : `${drugRequest.drug.name} is not available at this pharmacy`;
+        
+        await createNotification({
+            userId: drugRequest.patient.userId,
+            type: notificationType,
+            title: isAvailable ? 'Drug Available' : 'Drug Not Available',
+            message: notificationMessage,
+            data: { drugRequestId, responseId: response.id, drugId: drugRequest.drugId }
+        });
+    } catch (error) {
+        console.error('Failed to create notification:', error);
+        // Don't fail the main operation if notification fails
     }
 
     res.status(201).json({
