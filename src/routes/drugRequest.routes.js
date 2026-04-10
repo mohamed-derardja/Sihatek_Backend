@@ -1,9 +1,8 @@
-import express from 'express';
-import asyncHandler from '../utils/asyncHandler.js';
+import { Router } from 'express';
 import { authenticate } from '../middlewares/auth.middleware.js';
 import { authorize } from '../middlewares/role.middleware.js';
 
-const router = express.Router();
+const router = Router();
 
 // TODO: Import controllers
 // const drugRequestController = require('../controllers/drugRequestController');
