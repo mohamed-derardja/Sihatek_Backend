@@ -9,6 +9,8 @@ import accessHistoryRoutes from './accessHistory.routes.js';
 import pharmacyDashboardRoutes from './pharmacyDashboard.routes.js';
 import notificationRoutes from './notification.routes.js';
 import adminRoutes from './admin.routes.js';
+import statisticsRoutes from './statistics.routes.js';
+import settingsRoutes from './settings.routes.js';
 import { errorHandler } from '../middlewares/error.middleware.js';
 
 const setupRoutes = (app) => {
@@ -23,6 +25,8 @@ const setupRoutes = (app) => {
     app.use('/api/pharmacy/v1', pharmacyDashboardRoutes);
     app.use('/api/notifications/v1', notificationRoutes);
     app.use('/api/admin/v1', adminRoutes);
+    app.use('/api/statistics/v1', statisticsRoutes);
+    app.use('/api/settings/v1', settingsRoutes);
 
     app.get('/', (req, res) => {
         res.status(200).json({
