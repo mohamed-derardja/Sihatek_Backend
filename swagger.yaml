@@ -1,0 +1,992 @@
+swagger: '3.0.0'
+info:
+  title: Sihatek Healthcare API
+  description: Comprehensive healthcare platform API with patient data access control, prescriptions, drug requests, and pharmacy management
+  version: 1.0.0
+  contact:
+    name: Sihatek Support
+    email: support@sihatek.com
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:5000
+    description: Development server
+  - url: https://api.sihatek.com
+    description: Production server
+
+paths:
+  # ===== AUTH ROUTES =====
+  /api/auth/v1/register-patient:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new patient
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 6
+                phone:
+                  type: string
+              required:
+                - name
+                - email
+                - password
+      responses:
+        201:
+          description: Patient registered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  code:
+                    type: string
+                  message:
+                    type: string
+                  data:
+                    type: object
+        400:
+          description: Validation error
+
+  /api/auth/v1/register-doctor:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new doctor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 6
+                specialization:
+                  type: string
+                licenseNumber:
+                  type: string
+                experienceYears:
+                  type: integer
+                clinicAddress:
+                  type: string
+                certificateUrl:
+                  type: string
+              required:
+                - name
+                - email
+                - password
+                - specialization
+                - licenseNumber
+      responses:
+        201:
+          description: Doctor registered successfully (pending approval)
+
+  /api/auth/v1/register-pharmacy:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new pharmacist
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 6
+                pharmacyName:
+                  type: string
+                licenseNumber:
+                  type: string
+                location:
+                  type: string
+              required:
+                - name
+                - email
+                - password
+                - pharmacyName
+                - licenseNumber
+                - location
+      responses:
+        201:
+          description: Pharmacist registered successfully (pending approval)
+
+  /api/auth/v1/login:
+    post:
+      tags:
+        - Authentication
+      summary: User login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+              required:
+                - email
+                - password
+      responses:
+        200:
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  code:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      accessToken:
+                        type: string
+                      refreshToken:
+                        type: string
+                      user:
+                        type: object
+
+  /api/auth/v1/logout:
+    post:
+      tags:
+        - Authentication
+      summary: User logout
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: Logout successful
+
+  # ===== PATIENT DATA ACCESS =====
+  /api/patient-access/v1/requests:
+    post:
+      tags:
+        - Patient Access Control
+      summary: Doctor requests access to patient data
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                patientUserId:
+                  type: integer
+                scopes:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - profile
+                      - allergies
+                      - medical_conditions
+                      - medications
+                      - prescriptions
+                      - drug_requests
+                      - all
+                message:
+                  type: string
+                durationDays:
+                  type: integer
+                  description: Requested duration in days
+              required:
+                - patientUserId
+                - scopes
+      responses:
+        201:
+          description: Access request created
+
+  /api/patient-access/v1/requests/my-sent:
+    get:
+      tags:
+        - Patient Access Control
+      summary: List sent access requests (Doctor only)
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        200:
+          description: List of sent requests
+
+  /api/patient-access/v1/requests/my-received:
+    get:
+      tags:
+        - Patient Access Control
+      summary: List received access requests (Patient only)
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: List of received requests
+
+  /api/patient-access/v1/requests/{id}:
+    patch:
+      tags:
+        - Patient Access Control
+      summary: Patient responds to access request
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum:
+                    - approved
+                    - rejected
+                durationDays:
+                  type: integer
+              required:
+                - status
+      responses:
+        200:
+          description: Request updated
+
+  /api/patient-access/v1/grants:
+    get:
+      tags:
+        - Patient Access Control
+      summary: List active access grants (Patient only)
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: List of grants with expiry status
+
+  /api/patient-access/v1/grants/{doctorId}:
+    delete:
+      tags:
+        - Patient Access Control
+      summary: Revoke access grant (Patient only)
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: doctorId
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Grant revoked
+
+  # ===== PATIENT ACCESS HISTORY =====
+  /api/patients/{id}/access-history:
+    get:
+      tags:
+        - Patient Access History
+      summary: Get patient access history log
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Access history with audit trail
+
+  /api/patients/{id}/block-access:
+    post:
+      tags:
+        - Patient Access History
+      summary: Block access from specific doctor
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                doctorId:
+                  type: integer
+              required:
+                - doctorId
+      responses:
+        200:
+          description: Access blocked successfully
+
+  # ===== PATIENT DATA ENDPOINTS =====
+  /api/patients/{id}/profile:
+    get:
+      tags:
+        - Patient Data
+      summary: Get patient profile (requires profile scope)
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Patient profile data
+        403:
+          description: Insufficient permissions or access expired
+
+  /api/patients/{id}/allergies:
+    get:
+      tags:
+        - Patient Data
+      summary: Get patient allergies (requires allergies scope)
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Patient allergies list
+
+  /api/patients/{id}/medical-conditions:
+    get:
+      tags:
+        - Patient Data
+      summary: Get patient medical conditions
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Medical conditions list
+
+  /api/patients/{id}/medications:
+    get:
+      tags:
+        - Patient Data
+      summary: Get patient medications
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Medications list
+
+  /api/patients/{id}/prescriptions:
+    get:
+      tags:
+        - Patient Data
+      summary: Get patient prescriptions
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Prescriptions list
+
+  # ===== PHARMACY FEATURES =====
+  /api/pharmacy/v1/nearby:
+    get:
+      tags:
+        - Pharmacy
+      summary: Find nearby pharmacies by geolocation
+      parameters:
+        - in: query
+          name: latitude
+          required: true
+          schema:
+            type: number
+        - in: query
+          name: longitude
+          required: true
+          schema:
+            type: number
+        - in: query
+          name: radius
+          schema:
+            type: number
+            default: 10
+            description: Search radius in kilometers
+      responses:
+        200:
+          description: List of nearby pharmacies sorted by distance
+
+  /api/pharmacy/v1/dashboard:
+    get:
+      tags:
+        - Pharmacy
+      summary: Get pharmacist dashboard with drug requests
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: Dashboard with request statistics and details
+
+  /api/pharmacy/v1/drug-requests/{id}/respond:
+    post:
+      tags:
+        - Pharmacy
+      summary: Pharmacist responds to drug request
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                available:
+                  type: boolean
+                responseText:
+                  type: string
+              required:
+                - available
+      responses:
+        201:
+          description: Response created/updated
+
+  /api/pharmacy/v1/{id}/pharmacy-responses:
+    get:
+      tags:
+        - Pharmacy
+      summary: Get pharmacy responses to patient's drug requests
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+        - in: query
+          name: available
+          schema:
+            type: boolean
+            description: Filter by available status
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Pharmacy responses with statistics
+
+  # ===== NOTIFICATIONS =====
+  /api/notifications/v1/:
+    get:
+      tags:
+        - Notifications
+      summary: Get user notifications
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+        - in: query
+          name: unreadOnly
+          schema:
+            type: boolean
+      responses:
+        200:
+          description: List of notifications with statistics
+
+  /api/notifications/v1/unread-count:
+    get:
+      tags:
+        - Notifications
+      summary: Get unread notifications count
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: Unread count
+
+  /api/notifications/v1/{id}/read:
+    patch:
+      tags:
+        - Notifications
+      summary: Mark notification as read
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Notification marked as read
+
+  /api/notifications/v1/read-all:
+    patch:
+      tags:
+        - Notifications
+      summary: Mark all notifications as read
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: All unread notifications marked as read
+
+  /api/notifications/v1/{id}:
+    delete:
+      tags:
+        - Notifications
+      summary: Delete notification
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Notification deleted
+
+  # ===== ADMIN ROUTES =====
+  /api/admin/v1/doctors/pending:
+    get:
+      tags:
+        - Admin
+      summary: Get pending doctor registrations
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: List of pending doctors
+
+  /api/admin/v1/doctors/{id}/accept:
+    patch:
+      tags:
+        - Admin
+      summary: Approve doctor registration
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Doctor approved
+
+  /api/admin/v1/doctors/{id}/reject:
+    patch:
+      tags:
+        - Admin
+      summary: Reject doctor registration
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Doctor rejected
+
+  /api/admin/v1/pharmacies/pending:
+    get:
+      tags:
+        - Admin
+      summary: Get pending pharmacy registrations
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: List of pending pharmacies
+
+  /api/admin/v1/pharmacies/{id}/accept:
+    patch:
+      tags:
+        - Admin
+      summary: Approve pharmacy registration
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Pharmacy approved
+
+  /api/admin/v1/pharmacies/{id}/reject:
+    patch:
+      tags:
+        - Admin
+      summary: Reject pharmacy registration
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Pharmacy rejected
+
+  /api/admin/v1/approvals:
+    get:
+      tags:
+        - Admin
+      summary: Get all pending approvals (doctors + pharmacies)
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: Combined list of pending approvals
+
+  # ===== GUEST PATIENTS =====
+  /api/guest-patients/v1/:
+    post:
+      tags:
+        - Guest Patients
+      summary: Create a guest patient
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                phone:
+                  type: string
+                gender:
+                  type: string
+                  enum:
+                    - male
+                    - female
+                dateOfBirth:
+                  type: string
+                  format: date
+                bloodType:
+                  type: string
+              required:
+                - name
+      responses:
+        201:
+          description: Guest patient created
+
+    get:
+      tags:
+        - Guest Patients
+      summary: List guest patients created by doctor
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: List of guest patients
+
+  # ===== DRUGS =====
+  /api/drugs/v1/:
+    get:
+      tags:
+        - Drugs
+      summary: List all drugs with pagination and search
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Drugs list
+
+  /api/drugs/v1/{id}:
+    get:
+      tags:
+        - Drugs
+      summary: Get drug details
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Drug details
+
+  # ===== PRESCRIPTIONS =====
+  /api/prescriptions/v1/:
+    post:
+      tags:
+        - Prescriptions
+      summary: Create prescription
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                patientId:
+                  type: integer
+                items:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      drugId:
+                        type: integer
+                      dosage:
+                        type: string
+                      frequency:
+                        type: string
+                      duration:
+                        type: string
+              required:
+                - patientId
+                - items
+      responses:
+        201:
+          description: Prescription created
+
+    get:
+      tags:
+        - Prescriptions
+      summary: List prescriptions
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: Prescriptions list
+
+  # ===== USERS =====
+  /api/users/v1/profile:
+    get:
+      tags:
+        - Users
+      summary: Get current user profile
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: User profile
+
+    patch:
+      tags:
+        - Users
+      summary: Update user profile
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                phone:
+                  type: string
+                imageUrl:
+                  type: string
+                theme:
+                  type: string
+                  enum:
+                    - light
+                    - dark
+                lang:
+                  type: string
+                  enum:
+                    - en
+                    - ar
+                    - fr
+      responses:
+        200:
+          description: Profile updated
+
+  # ===== HEALTH CHECK =====
+  /api/health:
+    get:
+      tags:
+        - Health
+      summary: Server health check
+      responses:
+        200:
+          description: Server is running
+
+  /:
+    get:
+      tags:
+        - Health
+      summary: Welcome endpoint
+      responses:
+        200:
+          description: Welcome message
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT access token
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+        code:
+          type: string
+        message:
+          type: string
+
+tags:
+  - name: Authentication
+    description: User registration and login
+  - name: Patient Data
+    description: Scope-protected patient data endpoints
+  - name: Patient Access Control
+    description: Request/grant based access control
+  - name: Patient Access History
+    description: Access audit logs and blocking
+  - name: Pharmacy
+    description: Pharmacy features and drug requests
+  - name: Notifications
+    description: User notifications management
+  - name: Admin
+    description: Admin approval workflows
+  - name: Guest Patients
+    description: Guest patient management (doctors)
+  - name: Drugs
+    description: Drug catalog
+  - name: Prescriptions
+    description: Prescription management
+  - name: Users
+    description: User profile management
+  - name: Health
+    description: Server health checks

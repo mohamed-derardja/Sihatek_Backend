@@ -3,6 +3,10 @@ import { ENV } from './env.js';
 import { authPaths, authTags } from '../docs/auth-swagger.js';
 import { drugPaths, drugTags } from '../docs/drug-swagger.js';
 import { userPaths, userTags } from '../docs/user-swagger.js';
+import { patientAccessPaths, patientAccessTags } from '../docs/patient-access-swagger.js';
+import { accessHistoryPaths, accessHistoryTags } from '../docs/access-history-swagger.js';
+import { pharmacyPaths, pharmacyTags } from '../docs/pharmacy-swagger.js';
+import { notificationPaths, notificationTags } from '../docs/notification-swagger.js';
 
 const options = {
   definition: {
@@ -233,8 +237,8 @@ const options = {
         },
       },
     },
-    tags: [...authTags, ...drugTags, ...userTags],
-    paths: { ...authPaths, ...drugPaths, ...userPaths },
+    tags: [...authTags, ...drugTags, ...userTags, ...patientAccessTags, ...accessHistoryTags, ...pharmacyTags, ...notificationTags],
+    paths: { ...authPaths, ...drugPaths, ...userPaths, ...patientAccessPaths, ...accessHistoryPaths, ...pharmacyPaths, ...notificationPaths },
   },
   apis: [],
 };

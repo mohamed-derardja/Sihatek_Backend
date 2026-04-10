@@ -1,49 +1,25 @@
 import { Router } from 'express';
 import { authenticate } from '../middlewares/auth.middleware.js';
+import * as notificationController from '../controllers/notification.controller.js';
 
 const router = Router();
 
-// TODO: Import controllers
-// const notificationController = require('../controllers/notificationController');
+// Get all notifications for user (with pagination)
+router.get('/', authenticate, notificationController.getUserNotifications);
 
-// Get all notifications for user
-router.get('/', authenticate, asyncHandler(async (req, res) => {
-  // Get user's notifications
-}));
-
-// Get notification by ID
-router.get('/:id', authenticate, asyncHandler(async (req, res) => {
-  // Get specific notification
-}));
-
-// Get unread notifications
-router.get('/unread', authenticate, asyncHandler(async (req, res) => {
-  // Get unread notifications for user
-}));
-
-// Get notifications by type
-router.get('/type/:type', authenticate, asyncHandler(async (req, res) => {
-  // Get notifications filtered by type
-}));
+// Get unread notifications count
+router.get('/unread-count', authenticate, notificationController.getUnreadNotificationsCount);
 
 // Mark notification as read
-router.patch('/:id/read', authenticate, asyncHandler(async (req, res) => {
-  // Mark notification as read
-}));
+router.patch('/:id/read', authenticate, notificationController.markNotificationAsRead);
 
 // Mark all notifications as read
-router.patch('/read-all', authenticate, asyncHandler(async (req, res) => {
-  // Mark all notifications as read for user
-}));
+router.patch('/read-all', authenticate, notificationController.markAllNotificationsAsRead);
 
 // Delete notification
-router.delete('/:id', authenticate, asyncHandler(async (req, res) => {
-  // Delete notification
-}));
+router.delete('/:id', authenticate, notificationController.deleteNotification);
 
 // Delete all notifications
-router.delete('/', authenticate, asyncHandler(async (req, res) => {
-  // Delete all notifications for user
-}));
+router.delete('', authenticate, notificationController.deleteAllNotifications);
 
 export default router;
