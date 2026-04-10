@@ -15,6 +15,23 @@ const ALLOWED_SCOPES = new Set([
     'all',
 ]);
 
+// Calculate expiry date based on days from now
+export const calculateExpiryDate = (durationDays) => {
+    if (!durationDays || Number.isNaN(Number(durationDays))) return null;
+    const days = Number.parseInt(durationDays, 10);
+    if (days <= 0) return null;
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + days);
+    return expiresAt;
+};
+
+// Check if access grant is still valid (not expired)
+export const isGrantValid = (grant) => {
+    if (!grant || !grant.isActive) return false;
+    if (!grant.expiresAt) return true; // No expiry = valid indefinitely
+    return new Date() < new Date(grant.expiresAt);
+};
+
 export const normalizeScopes = (scopes) => {
     if (!Array.isArray(scopes) || scopes.length === 0) return null;
 
@@ -77,7 +94,7 @@ export const getPatientIdByUserId = async (userId) => {
     return created.id;
 };
 
-export const createOrUpdateAccessRequest = async ({ doctorUserId, patientId, patientUserId, scopes, message }) => {
+export const createOrUpdateAccessRequest = async ({ doctorUserId, patientId, patientUserId, scopes, message, durationDays }) => {
     const doctorId = await getDoctorIdByUserId(doctorUserId);
     if (!doctorId) return { ok: false, reason: 'doctor_not_found' };
 
@@ -89,6 +106,8 @@ export const createOrUpdateAccessRequest = async ({ doctorUserId, patientId, pat
 
     const normalizedScopes = normalizeScopes(scopes);
     if (!normalizedScopes) return { ok: false, reason: 'invalid_scopes' };
+
+    const requestedExpiresAt = calculateExpiryDate(durationDays);
 
     const existingPending = await prisma.patientAccessRequest.findFirst({
         where: {
@@ -105,6 +124,7 @@ export const createOrUpdateAccessRequest = async ({ doctorUserId, patientId, pat
               data: {
                   scopes: normalizedScopes,
                   message: typeof message === 'string' && message.trim() ? message.trim() : existingPending.message,
+                  requestedExpiresAt,
               },
               include: {
                   patient: { include: { user: true } },
@@ -117,6 +137,7 @@ export const createOrUpdateAccessRequest = async ({ doctorUserId, patientId, pat
                   doctorId,
                   scopes: normalizedScopes,
                   message: typeof message === 'string' && message.trim() ? message.trim() : null,
+                  requestedExpiresAt,
               },
               include: {
                   patient: { include: { user: true } },
@@ -187,7 +208,7 @@ export const listRequestsReceivedByPatientUserId = async ({ patientUserId, page 
     };
 };
 
-export const respondToRequestAsPatient = async ({ patientUserId, requestId, status }) => {
+export const respondToRequestAsPatient = async ({ patientUserId, requestId, status, durationDays }) => {
     const patientId = await getPatientIdByUserId(patientUserId);
     if (!patientId) return { ok: false, reason: 'patient_not_found' };
 
@@ -211,6 +232,8 @@ export const respondToRequestAsPatient = async ({ patientUserId, requestId, stat
 
         if (nextStatus === 'approved') {
             const scopes = Array.isArray(request.scopes) && request.scopes.includes('all') ? ['all'] : request.scopes;
+            // Use durationDays from response or requestedExpiresAt from request
+            const expiresAt = calculateExpiryDate(durationDays) || request.requestedExpiresAt;
 
             await tx.patientAccessGrant.upsert({
                 where: { patientId_doctorId: { patientId: request.patientId, doctorId: request.doctorId } },
@@ -219,10 +242,12 @@ export const respondToRequestAsPatient = async ({ patientUserId, requestId, stat
                     doctorId: request.doctorId,
                     scopes,
                     isActive: true,
+                    expiresAt,
                 },
                 update: {
                     scopes,
                     isActive: true,
+                    expiresAt,
                 },
             });
         }
@@ -243,7 +268,14 @@ export const listGrantsForPatientUserId = async ({ patientUserId }) => {
         include: { doctor: { include: { user: true } } },
     });
 
-    return { ok: true, grants };
+    // Enhance grants with isValid and isExpired flags
+    const enhancedGrants = grants.map((grant) => ({
+        ...grant,
+        isValid: isGrantValid(grant),
+        isExpired: grant.expiresAt && new Date() >= new Date(grant.expiresAt),
+    }));
+
+    return { ok: true, grants: enhancedGrants };
 };
 
 export const revokeGrantAsPatient = async ({ patientUserId, doctorId }) => {
@@ -276,9 +308,10 @@ export const getActiveGrantScopesForDoctor = async ({ patientId, doctorUserId })
 
     const grant = await prisma.patientAccessGrant.findUnique({
         where: { patientId_doctorId: { patientId: patientIdInt, doctorId } },
-        select: { scopes: true, isActive: true },
+        select: { scopes: true, isActive: true, expiresAt: true },
     });
 
-    if (!grant?.isActive) return null;
+    // Check if grant is valid (active and not expired)
+    if (!isGrantValid(grant)) return null;
     return grant.scopes;
 };

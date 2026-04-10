@@ -358,6 +358,7 @@ model PharmacyResponse {
     drugRequestId Int
     pharmacistId Int
     responseText String
+    available Boolean @default(false)
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
@@ -403,6 +404,7 @@ model PatientAccessRequest {
     scopes    AccessScope[]
     status    AccessRequestStatus @default(pending)
     message   String?
+    requestedExpiresAt DateTime?
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
@@ -422,6 +424,7 @@ model PatientAccessGrant {
 
     scopes    AccessScope[]
     isActive  Boolean @default(true)
+    expiresAt DateTime?
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
@@ -433,6 +436,7 @@ model PatientAccessGrant {
     @@index([patientId])
     @@index([doctorId])
     @@index([isActive])
+    @@index([expiresAt])
 }
 
 

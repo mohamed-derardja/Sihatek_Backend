@@ -7,7 +7,7 @@ export const createAccessRequest = asyncHandler(async (req, res) => {
         throw new AppError('Insufficient permissions', 403, 'INSUFFICIENT_PERMISSIONS');
     }
 
-    const { patientId, patientUserId, scopes, message } = req.body || {};
+    const { patientId, patientUserId, scopes, message, durationDays } = req.body || {};
 
     const result = await PatientAccess.createOrUpdateAccessRequest({
         doctorUserId: req.user.id,
@@ -15,6 +15,7 @@ export const createAccessRequest = asyncHandler(async (req, res) => {
         patientUserId,
         scopes,
         message,
+        durationDays,
     });
 
     if (!result.ok) {
@@ -92,12 +93,13 @@ export const respondToRequest = asyncHandler(async (req, res) => {
         throw new AppError('Insufficient permissions', 403, 'INSUFFICIENT_PERMISSIONS');
     }
 
-    const { status } = req.body || {};
+    const { status, durationDays } = req.body || {};
 
     const result = await PatientAccess.respondToRequestAsPatient({
         patientUserId: req.user.id,
         requestId: req.params.id,
         status,
+        durationDays,
     });
 
     if (!result.ok) {
