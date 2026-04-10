@@ -1,74 +1,42 @@
 import { Router } from 'express';
-import { authenticate } from '../middlewares/auth.middleware.js';
+import * as userController from '../controllers/user.controller.js';
 
 const router = Router();
 
-// TODO: Import controllers
-// const userController = require('../controllers/userController');
-
-// Get all users (admin only)
-router.get('/', authenticate, asyncHandler(async (req, res) => {
-  // Get paginated list of users
-}));
+// Get all users
+router.get('/', userController.getAllUsers);
 
 // Get current user profile
-router.get('/profile', authenticate, asyncHandler(async (req, res) => {
-  // Get authenticated user's profile
-}));
+router.get('/profile', userController.getCurrentUserProfile);
+
+// Search users
+router.get('/search', userController.searchUsers);
+
+// Get users by role
+router.get('/role/:role', userController.getUsersByRole);
+
+// Get user statistics
+router.get('/stats', userController.getUserStatistics);
 
 // Get user by ID
-router.get('/:id', authenticate, asyncHandler(async (req, res) => {
-  // Get specific user by ID
-}));
+router.get('/:id', userController.getUserById);
 
-// Update user profile
-router.patch('/profile', authenticate, asyncHandler(async (req, res) => {
-  // Update authenticated user's profile
-}));
+// Update current user profile
+router.patch('/profile', userController.updateCurrentUserProfile);
 
-// Update user by ID (admin)
-router.patch('/:id', authenticate, asyncHandler(async (req, res) => {
-  // Update specific user
-}));
+// Update user by ID
+router.patch('/:id', userController.updateUser);
 
-// Delete user account
-router.delete('/profile', authenticate, asyncHandler(async (req, res) => {
-  // Delete authenticated user
-}));
+// Delete current user account
+router.delete('/profile', userController.deleteCurrentUserAccount);
 
-// Delete user by ID (admin)
-router.delete('/:id', authenticate, asyncHandler(async (req, res) => {
-  // Delete specific user
-}));
+// Delete user by ID
+router.delete('/:id', userController.deleteUser);
 
-// Update user role (admin)
-router.patch('/:id/role', authenticate, asyncHandler(async (req, res) => {
-  // Update user role
-}));
+// Update user role
+router.patch('/:id/role', userController.updateUserRole);
 
-// Update user status (admin)
-router.patch('/:id/status', authenticate, asyncHandler(async (req, res) => {
-  // Update user status
-}));
-
-// Get user sessions
-router.get('/:id/sessions', authenticate, asyncHandler(async (req, res) => {
-  // Get user's active sessions
-}));
-
-// Get user access logs
-router.get('/:id/access-logs', authenticate, asyncHandler(async (req, res) => {
-  // Get user's access logs
-}));
-
-// Get user audit logs
-router.get('/:id/audit-logs', authenticate, asyncHandler(async (req, res) => {
-  // Get user's audit logs
-}));
-
-// Get user notifications
-router.get('/:id/notifications', authenticate, asyncHandler(async (req, res) => {
-  // Get user's notifications
-}));
+// Update user status
+router.patch('/:id/status', userController.updateUserStatus);
 
 export default router;

@@ -28,16 +28,14 @@ app.use(cookieParser());
 
 // Swagger documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, { 
-  swaggerOptions: { 
-    persistAuthorization: true,
-    displayOperationId: true,
-  } 
+    swaggerOptions: { 
+        persistAuthorization: true,
+        displayOperationId: true,
+    } 
 }));
 
 // Set up routes
 setupRoutes(app);
-
-
 
 
 export default app;

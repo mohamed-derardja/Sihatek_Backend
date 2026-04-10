@@ -20,7 +20,4 @@ export const ENV = {
     jwtRefreshSecret: process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key-change-in-production',
     jwtExpiresInAccess: process.env.JWT_EXPIRES_IN_ACCESS || '15m',
     jwtExpiresInRefresh: process.env.JWT_EXPIRES_IN_REFRESH || '7d',
-    
-    // Google OAuth Configuration
-    GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
 };

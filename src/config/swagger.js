@@ -1,5 +1,8 @@
 import swaggerJsdoc from 'swagger-jsdoc';
 import { ENV } from './env.js';
+import { authPaths, authTags } from '../docs/auth-swagger.js';
+import { drugPaths, drugTags } from '../docs/drug-swagger.js';
+import { userPaths, userTags } from '../docs/user-swagger.js';
 
 const options = {
   definition: {
@@ -145,6 +148,63 @@ const options = {
             },
           },
         },
+        UserResponse: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'integer',
+              example: 1,
+            },
+            name: {
+              type: 'string',
+              example: 'John Doe',
+            },
+            email: {
+              type: 'string',
+              example: 'john@example.com',
+            },
+            phone: {
+              type: 'string',
+              example: '+1234567890',
+            },
+            role: {
+              type: 'string',
+              enum: ['patient', 'doctor', 'pharmacist', 'admin'],
+              example: 'patient',
+            },
+            status: {
+              type: 'string',
+              enum: ['pending', 'active', 'rejected'],
+              example: 'active',
+            },
+            theme: {
+              type: 'string',
+              enum: ['light', 'dark'],
+              example: 'light',
+            },
+            lang: {
+              type: 'string',
+              enum: ['en', 'ar', 'fr'],
+              example: 'en',
+            },
+            imageUrl: {
+              type: 'string',
+              example: 'https://example.com/image.jpg',
+            },
+            isVerified: {
+              type: 'boolean',
+              example: true,
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time',
+            },
+            updatedAt: {
+              type: 'string',
+              format: 'date-time',
+            },
+          },
+        },
         ErrorResponse: {
           type: 'object',
           properties: {
@@ -173,8 +233,10 @@ const options = {
         },
       },
     },
+    tags: [...authTags, ...drugTags, ...userTags],
+    paths: { ...authPaths, ...drugPaths, ...userPaths },
   },
-  apis: ['./src/routes/*.js', './src/controllers/*.js'],
+  apis: [],
 };
 
 export const swaggerSpec = swaggerJsdoc(options);

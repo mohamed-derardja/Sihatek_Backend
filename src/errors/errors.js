@@ -13,11 +13,24 @@ export const Errors = {
     EMAIL_NOT_VERIFIED: () => new AppError('Email not verified', 403, 'EMAIL_NOT_VERIFIED'),
     INVALID_CREDENTIALS: () => new AppError('Invalid email or password', 401, 'INVALID_CREDENTIALS'),
     INVALID_PAYLOAD: () => new AppError('Invalid request payload', 400, 'INVALID_PAYLOAD'),
-    INVALID_GOOGLE_TOKEN: () => new AppError('Invalid Google token', 401, 'INVALID_GOOGLE_TOKEN'),
-    MISSING_GOOGLE_TOKEN: () => new AppError('Google token is required', 400, 'MISSING_GOOGLE_TOKEN'),
     ALREADY_VERIFIED: () => new AppError('Email is already verified', 400, 'ALREADY_VERIFIED'),
     ROLE_NOT_FOUND: () => new AppError('User role not found', 403, 'ROLE_NOT_FOUND'),
     INSUFFICIENT_PERMISSIONS: () => new AppError('Insufficient permissions', 403, 'INSUFFICIENT_PERMISSIONS'),
+
+    // Drug errors
+    DRUG_NOT_FOUND: () => new AppError('Drug not found', 404, 'DRUG_NOT_FOUND'),
+    DRUG_ALREADY_EXISTS: () => new AppError('Drug with this name already exists', 409, 'DRUG_ALREADY_EXISTS'),
+
+    // User errors
+    PROFILE_UPDATE_FAILED: () => new AppError('Failed to update profile', 500, 'PROFILE_UPDATE_FAILED'),
+    INVALID_ROLE: () => new AppError('Invalid user role', 400, 'INVALID_ROLE'),
+    INVALID_STATUS: () => new AppError('Invalid user status', 400, 'INVALID_STATUS'),
+    INVALID_THEME: () => new AppError('Invalid theme. Allowed values: light, dark', 400, 'INVALID_THEME'),
+    INVALID_LANGUAGE: () => new AppError('Invalid language. Allowed values: en, ar, fr', 400, 'INVALID_LANGUAGE'),
+
+    // Prescription / Access Code errors
+    PRESCRIPTION_NOT_FOUND: () => new AppError('Prescription not found', 404, 'PRESCRIPTION_NOT_FOUND'),
+    ACCESS_CODE_INVALID: () => new AppError('Access code is invalid, expired, used, or not allowed', 403, 'ACCESS_CODE_INVALID'),
 
     // General server error
     INTERNAL_SERVER_ERROR: () => new AppError('Internal server error', 500, 'INTERNAL_SERVER_ERROR'),

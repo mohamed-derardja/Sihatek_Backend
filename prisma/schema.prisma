@@ -22,6 +22,8 @@ model User {
     role      Role     @default(patient)
     status    UserStatus @default(pending)
     imageUrl String?
+    theme     Theme    @default(light)
+    lang      Language @default(en)
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
@@ -87,12 +89,15 @@ model Doctor {
     bio             String?
     clinicName      String?
     clinicAddress   String?
+    certificateUrl  String?
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
     user User @relation(fields: [userId], references: [id], name: "DoctorUser", onDelete: Cascade)
     prescriptions Prescription[] @relation("DoctorPrescriptions")
+    accessRequests PatientAccessRequest[] @relation("DoctorAccessRequests")
+    accessGrants PatientAccessGrant[] @relation("DoctorAccessGrants")
 
     @@index([specialization])
     @@index([licenseNumber])
@@ -113,7 +118,6 @@ model Pharmacist {
     updatedAt DateTime @updatedAt
 
     user User @relation(fields: [userId], references: [id], name: "PharmacistUser", onDelete: Cascade)
-    inventory Inventory[] @relation("PharmacistInventory")
     prescriptions Prescription[] @relation("PharmacistPrescriptions")
     pharmacyResponses PharmacyResponse[] @relation("PharmacistPharmacyResponses")
 }
@@ -122,6 +126,7 @@ model Pharmacist {
 model Patient {
     id        Int      @id @default(autoincrement())
     userId    Int      @unique
+    nin       String?  @unique
     dateOfBirth DateTime?
     gender Gender?
     bloodType String?
@@ -140,6 +145,8 @@ model Patient {
     drugRequests DrugRequest[] @relation("PatientDrugRequests")
     accessCodes AccessCode[] @relation("PatientAccessCodes")
     accessLogs AccessLog[] @relation("PatientAccessLogs")
+    accessRequests PatientAccessRequest[] @relation("PatientAccessRequests")
+    accessGrants PatientAccessGrant[] @relation("PatientAccessGrants")
 
     user User @relation(fields: [userId], references: [id], name: "PatientUser", onDelete: Cascade)
 
@@ -221,37 +228,27 @@ model PatientMedication {
 }
 
 model Drug {
-    id          Int      @id @default(autoincrement())
-    name        String   @unique
-    description String?
+    id                     Int      @id @default(autoincrement())
+    name                   String   @unique
+    description            String?
+    composition            String?
+    uses                   String?
+    sideEffects            String?
+    imageUrl               String?
+    manufacturer           String?
+    excellentReviewPercent Float?
+    averageReviewPercent   Float?
+    poorReviewPercent      Float?
 
-    createdAt   DateTime @default(now())
-    updatedAt   DateTime @updatedAt
+    createdAt              DateTime @default(now())
+    updatedAt              DateTime @updatedAt
 
-    inventory Inventory[] @relation("DrugInventory")
-    prescriptionItems PrescriptionItem[] @relation("DrugPrescriptionItems")
-    patientMedications PatientMedication[] @relation("DrugPatientMedications")
-    drugRequests DrugRequest[] @relation("DrugDrugRequests")
+    prescriptionItems      PrescriptionItem[] @relation("DrugPrescriptionItems")
+    patientMedications     PatientMedication[] @relation("DrugPatientMedications")
+    drugRequests           DrugRequest[] @relation("DrugDrugRequests")
 
     @@index([name])
-}
-
-model Inventory {
-    id          Int      @id @default(autoincrement())
-    pharmacistId Int
-    drugId      Int
-    quantity     Int
-    price       Float
-
-    createdAt   DateTime @default(now())
-    updatedAt   DateTime @updatedAt
-
-    pharmacist Pharmacist @relation(fields: [pharmacistId], references: [id], name: "PharmacistInventory", onDelete: Cascade)
-    drug Drug @relation(fields: [drugId], references: [id], name: "DrugInventory", onDelete: Cascade)
-
-    @@unique([pharmacistId, drugId])
-    @@index([pharmacistId])
-    @@index([drugId])
+    @@index([manufacturer])
 }
 
 model Prescription {
@@ -398,6 +395,46 @@ model AuditLog {
     user User @relation(fields: [userId], references: [id], name: "UserAuditLogs", onDelete: Cascade)
 }
 
+model PatientAccessRequest {
+    id        Int      @id @default(autoincrement())
+    patientId Int
+    doctorId  Int
+
+    scopes    AccessScope[]
+    status    AccessRequestStatus @default(pending)
+    message   String?
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    patient   Patient @relation(fields: [patientId], references: [id], name: "PatientAccessRequests", onDelete: Cascade)
+    doctor    Doctor  @relation(fields: [doctorId], references: [id], name: "DoctorAccessRequests", onDelete: Cascade)
+
+    @@index([patientId])
+    @@index([doctorId])
+    @@index([status])
+}
+
+model PatientAccessGrant {
+    id        Int      @id @default(autoincrement())
+    patientId Int
+    doctorId  Int
+
+    scopes    AccessScope[]
+    isActive  Boolean @default(true)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    patient   Patient @relation(fields: [patientId], references: [id], name: "PatientAccessGrants", onDelete: Cascade)
+    doctor    Doctor  @relation(fields: [doctorId], references: [id], name: "DoctorAccessGrants", onDelete: Cascade)
+
+    @@unique([patientId, doctorId])
+    @@index([patientId])
+    @@index([doctorId])
+    @@index([isActive])
+}
+
 
 enum Provider {
     local
@@ -448,4 +485,32 @@ enum ActionType {
 enum DrugRequestStatus {
     open
     resolved
+}
+
+enum Theme {
+    light
+    dark
+}
+
+enum Language {
+    en
+    ar
+    fr
+}
+
+enum AccessScope {
+    profile
+    allergies
+    medical_conditions
+    medications
+    prescriptions
+    drug_requests
+    all
+}
+
+enum AccessRequestStatus {
+    pending
+    approved
+    rejected
+    revoked
 }

@@ -2,7 +2,7 @@ import * as authService from '../services/auth.service.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { Errors } from '../errors/errors.js';
 import { ENV } from '../config/env.js';
-import { sendVerificationEmail } from '../utils/email.sender.js';
+import { sendVerificationEmail, sendPasswordResetEmail } from '../utils/email.sender.js';
 import { setAuthCookies, clearAuthCookies } from '../utils/jwt.js';
 
 // Cookie configuration for secure token storage
@@ -16,7 +16,7 @@ const COOKIE_OPTIONS = {
 
 // Register patient
 export const registerPatient = asyncHandler(async (req, res) => {
-    const { name, email, password, phone } = req.body;
+    const { name, email, password, phone, nin } = req.body;
 
     // Validate required fields
     if (!name || !email || !password || !phone) {
@@ -29,6 +29,7 @@ export const registerPatient = asyncHandler(async (req, res) => {
         email,
         password,
         phone,
+        nin,
         role: 'patient',
     });
 
@@ -47,10 +48,10 @@ export const registerPatient = asyncHandler(async (req, res) => {
 
 // Register doctor
 export const registerDoctor = asyncHandler(async (req, res) => {
-    const { name, email, password, phone } = req.body;
+    const { name, email, password, phone, specialization, licenseNumber, experienceYears, certificateUrl, clinicAddress } = req.body;
 
     // Validate required fields
-    if (!name || !email || !password || !phone) {
+    if (!name || !email || !password || !phone || !specialization || !licenseNumber) {
         throw Errors.INVALID_PAYLOAD();
     }
 
@@ -61,6 +62,13 @@ export const registerDoctor = asyncHandler(async (req, res) => {
         password,
         phone,
         role: 'doctor',
+        doctorData: {
+            specialization,
+            licenseNumber,
+            experienceYears: experienceYears ? parseInt(experienceYears, 10) : null,
+            certificateUrl,
+            clinicAddress,
+        },
     });
 
     res.status(201).json({
@@ -75,10 +83,10 @@ export const registerDoctor = asyncHandler(async (req, res) => {
 
 // Register pharmacy
 export const registerPharmacy = asyncHandler(async (req, res) => {
-    const { name, email, password, phone } = req.body;
+    const { name, email, password, phone, pharmacyName, licenseNumber, location } = req.body;
 
     // Validate required fields
-    if (!name || !email || !password || !phone) {
+    if (!name || !email || !password || !phone || !pharmacyName || !licenseNumber) {
         throw Errors.INVALID_PAYLOAD();
     }
 
@@ -89,6 +97,11 @@ export const registerPharmacy = asyncHandler(async (req, res) => {
         password,
         phone,
         role: 'pharmacist',
+        pharmacistData: {
+            pharmacyName,
+            licenseNumber,
+            location,
+        },
     });
 
     res.status(201).json({
@@ -126,36 +139,6 @@ export const login = asyncHandler(async (req, res) => {
         message: 'Logged in successfully',
         data: {
             user: result.user,
-        },
-    });
-});
-
-// Google Authentication
-export const googleAuth = asyncHandler(async (req, res) => {
-    const { token } = req.body;
-
-    // Validate token
-    if (!token) {
-        throw Errors.MISSING_GOOGLE_TOKEN();
-    }
-
-    // Get user agent and IP address
-    const userAgent = req.get('user-agent') || 'Unknown';
-    const ipAddress = req.ip || req.connection.remoteAddress || '127.0.0.1';
-
-    // Verify and authenticate with Google
-    const result = await authService.loginWithGoogle(token, userAgent, ipAddress);
-
-    // Set cookies
-    setAuthCookies(res, result.tokens.accessToken, result.tokens.refreshToken);
-
-    res.status(200).json({
-        success: true,
-        code: 'LOGIN_SUCCESS',
-        message: 'Logged in with Google successfully',
-        data: {
-            user: result.user,
-            tokens: result.tokens,
         },
     });
 });
@@ -223,36 +206,33 @@ export const forgotPassword = asyncHandler(async (req, res) => {
     const { email } = req.body;
 
     if (!email) {
-        throw Errors.INVALID_TOKEN_FORMAT();
+        throw Errors.INVALID_PAYLOAD();
     }
 
     const resetToken = await authService.forgotPassword(email);
 
+    await sendPasswordResetEmail(email, resetToken);
+
     res.status(200).json({
         success: true,
-        message: 'Password reset email sent',
-        data: {
-            resetToken, // In production, send this via email, not in response
-        },
+        code: 'PASSWORD_RESET_EMAIL_SENT',
+        message: 'Password reset email sent successfully',
     });
 });
 
 // Reset password
 export const resetPassword = asyncHandler(async (req, res) => {
-    const { token, password, confirmPassword } = req.body;
+    const { token, password } = req.body;
 
-    if (!token || !password || !confirmPassword) {
+    if (!token || !password) {
         throw Errors.INVALID_TOKEN_FORMAT();
-    }
-
-    if (password !== confirmPassword) {
-        throw Errors.INVALID_TOKEN_PAYLOAD();
     }
 
     await authService.resetPassword(token, password);
 
     res.status(200).json({
         success: true,
+        code: 'PASSWORD_RESET_SUCCESS',
         message: 'Password reset successfully',
     });
 });
@@ -285,13 +265,65 @@ export const refreshToken = asyncHandler(async (req, res) => {
 
 // Get current user (protected route)
 export const getCurrentUser = asyncHandler(async (req, res) => {
-    const userId = req.user.id;
-
-    // User info is already in req.user from middleware
+    // Return only essential user info
     res.status(200).json({
         success: true,
         data: {
-            user: req.user,
+            user: {
+                id: req.user.id,
+                email: req.user.email,
+                role: req.user.role,
+            },
         },
+    });
+});
+
+// Get all user sessions
+export const getUserSessions = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const sessions = await authService.getUserSessions(userId);
+
+    res.status(200).json({
+        success: true,
+        code: 'SESSIONS_RETRIEVED',
+        message: 'User sessions retrieved successfully',
+        data: {
+            sessions: sessions,
+            total: sessions.length,
+        },
+    });
+});
+
+// Logout from specific session
+export const logoutFromSession = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const { sessionId } = req.params;
+
+    if (!sessionId) {
+        throw Errors.INVALID_PAYLOAD();
+    }
+
+    await authService.logoutFromSession(userId, parseInt(sessionId));
+
+    res.status(200).json({
+        success: true,
+        code: 'SESSION_LOGOUT_SUCCESS',
+        message: 'Logged out from session successfully',
+    });
+});
+
+// Logout from all sessions
+export const logoutFromAllSessions = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+
+    await authService.logoutFromAllSessions(userId);
+
+    // Clear cookies after logging out from all sessions
+    clearAuthCookies(res);
+
+    res.status(200).json({
+        success: true,
+        code: 'ALL_SESSIONS_LOGOUT_SUCCESS',
+        message: 'Logged out from all sessions successfully',
     });
 });

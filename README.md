@@ -144,6 +144,13 @@ This runs the project in production mode using Node.js.
 npm test
 ```
 
+## 🧩 Prisma (Windows note)
+
+On Windows you may see an `EPERM: operation not permitted, rename ... query_engine-windows.dll.node` after running Prisma commands. This usually happens when the server (or another Node process) is currently using the Prisma Client.
+
+- Stop the running server (`npm run dev`) and re-run the command.
+- Or run migrations without generating the client: `npm run prisma:migrate:skip-generate`, then run `npm run prisma:generate`.
+
 ---
 
 ## 🌿 Creating and Pushing a New Branch

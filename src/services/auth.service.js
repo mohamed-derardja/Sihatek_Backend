@@ -1,6 +1,7 @@
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import * as authModel from '../models/Auth.js';
+import prisma from '../config/prisma.js';
 import { Errors } from '../errors/errors.js';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../utils/jwt.js';
 
@@ -10,6 +11,16 @@ export const registerUser = async (registerData) => {
     const existingUser = await authModel.findUserByEmail(registerData.email);
     if (existingUser) {
         throw Errors.USER_ALREADY_EXISTS();
+    }
+
+    // Check if NIN already exists (for patients)
+    if (registerData.nin && registerData.role === 'patient') {
+        const existingPatient = await prisma.patient.findUnique({
+            where: { nin: registerData.nin.trim() },
+        });
+        if (existingPatient) {
+            throw Errors.USER_ALREADY_EXISTS();
+        }
     }
 
     // Hash password
@@ -24,6 +35,62 @@ export const registerUser = async (registerData) => {
         role: registerData.role || 'patient',
         provider: 'local',
     });
+
+    // Create Patient profile for patients with optional NIN
+    if (registerData.role === 'patient') {
+        await prisma.patient.create({
+            data: {
+                userId: user.id,
+                nin: registerData.nin ? registerData.nin.trim() : null,
+            },
+        });
+    }
+
+    // Create Doctor profile for doctors
+    if (registerData.role === 'doctor' && registerData.doctorData) {
+        const doctorData = registerData.doctorData;
+        
+        // Check if license number already exists
+        const existingDoctor = await prisma.doctor.findUnique({
+            where: { licenseNumber: doctorData.licenseNumber.trim() },
+        });
+        if (existingDoctor) {
+            throw Errors.USER_ALREADY_EXISTS();
+        }
+
+        await prisma.doctor.create({
+            data: {
+                userId: user.id,
+                specialization: doctorData.specialization.trim(),
+                licenseNumber: doctorData.licenseNumber.trim(),
+                experienceYears: doctorData.experienceYears || null,
+                certificateUrl: doctorData.certificateUrl ? doctorData.certificateUrl.trim() : null,
+                clinicAddress: doctorData.clinicAddress ? doctorData.clinicAddress.trim() : null,
+            },
+        });
+    }
+
+    // Create Pharmacist profile for pharmacists
+    if (registerData.role === 'pharmacist' && registerData.pharmacistData) {
+        const pharmacistData = registerData.pharmacistData;
+        
+        // Check if license number already exists
+        const existingPharmacist = await prisma.pharmacist.findUnique({
+            where: { licenseNumber: pharmacistData.licenseNumber.trim() },
+        });
+        if (existingPharmacist) {
+            throw Errors.USER_ALREADY_EXISTS();
+        }
+
+        await prisma.pharmacist.create({
+            data: {
+                userId: user.id,
+                pharmacyName: pharmacistData.pharmacyName.trim(),
+                licenseNumber: pharmacistData.licenseNumber.trim(),
+                location: pharmacistData.location ? pharmacistData.location.trim() : 'Unknown',
+            },
+        });
+    }
 
     // Create verification token
     const verificationToken = crypto.randomBytes(32).toString('hex');
@@ -88,69 +155,6 @@ export const loginUser = async (email, password, userAgent, ipAddress) => {
             email: user.email,
             role: user.role,
             phone: user.phone,
-        },
-        tokens: {
-            accessToken,
-            refreshToken: session.refresh_token,
-        },
-    };
-};
-
-// Login with Google
-export const loginWithGoogle = async (googleToken, userAgent, ipAddress, role = 'patient') => {
-    const { verifyGoogleToken } = await import('../utils/google.js');
-    
-    // Verify Google token
-    const googlePayload = await verifyGoogleToken(googleToken);
-    
-    // Check if user exists
-    let user = await authModel.findUserByEmail(googlePayload.email);
-    
-    if (!user) {
-        // Create new user from Google data
-        user = await authModel.createUser({
-            name: `${googlePayload.firstName} ${googlePayload.lastName}`.trim(),
-            email: googlePayload.email,
-            phone: null,
-            role: role || 'patient',
-            provider: 'google',
-            googleId: googlePayload.googleId,
-            isVerified: true, // Google accounts are pre-verified
-        });
-    } else if (!user.googleId) {
-        // Link Google account to existing user
-        user = await authModel.updateUser(user.id, {
-            googleId: googlePayload.googleId,
-            provider: 'google',
-            isVerified: true,
-        });
-    }
-    
-    // Create session
-    const session = await authModel.createSession({
-        userId: user.id,
-        refreshToken: generateRefreshToken({
-            id: user.id,
-        }),
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-        userAgent: userAgent || 'Unknown',
-        ipAddress: ipAddress || '127.0.0.1',
-    });
-    
-    // Generate access token
-    const accessToken = generateAccessToken({
-        id: user.id,
-        sessionId: session.id,
-    });
-    
-    return {
-        user: {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            phone: user.phone,
-            provider: user.provider,
         },
         tokens: {
             accessToken,
@@ -262,6 +266,9 @@ export const forgotPassword = async (email) => {
         throw Errors.USER_NOT_FOUND();
     }
 
+    // Delete any existing password reset token for this user
+    await authModel.deleteTokenByUserIdAndType(user.id, 'password_reset');
+
     const resetToken = crypto.randomBytes(32).toString('hex');
     const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
 
@@ -292,5 +299,34 @@ export const resetPassword = async (token, newPassword) => {
 
     await authModel.deleteToken(tokenRecord.id);
 
+    return true;
+};
+
+// Get all sessions for a user
+export const getUserSessions = async (userId) => {
+    const sessions = await authModel.findAllSessionsByUserId(userId);
+    return sessions.map(session => ({
+        id: session.id,
+        userAgent: session.userAgent,
+        ipAddress: session.ipAddress,
+        createdAt: session.createdAt,
+        expiresAt: session.expiresAt,
+        isActive: !session.expiresAt || new Date() < session.expiresAt,
+    }));
+};
+
+// Logout from specific session
+export const logoutFromSession = async (userId, sessionId) => {
+    const session = await authModel.findSession(sessionId);
+    if (!session || session.user_id !== userId) {
+        throw Errors.SESSION_NOT_FOUND();
+    }
+    await authModel.deleteSession(sessionId);
+    return true;
+};
+
+// Logout from all sessions
+export const logoutFromAllSessions = async (userId) => {
+    await authModel.deleteAllSessionsByUserId(userId);
     return true;
 };

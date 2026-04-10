@@ -8,6 +8,7 @@
         "dev": "nodemon src/server.js",
         "prisma:generate": "prisma generate",
         "prisma:migrate": "prisma migrate dev --name init",
+        "prisma:migrate:skip-generate": "prisma migrate dev --skip-generate",
         "postinstall": "prisma generate"
     },
     "type": "module",
@@ -21,6 +22,7 @@
         "bcrypt": "^6.0.0",
         "cookie-parser": "^1.4.7",
         "cors": "^2.8.6",
+        "csv-parse": "^6.2.1",
         "dotenv": "^17.4.1",
         "express": "^5.2.1",
         "google-auth-library": "^10.6.2",

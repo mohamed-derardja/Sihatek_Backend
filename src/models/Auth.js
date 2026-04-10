@@ -9,8 +9,7 @@ export const createUser = async (userData) => {
             password: userData.password,
             phone: userData.phone,
             role: userData.role || 'patient',
-            provider: userData.provider || 'local',
-            googleId: userData.googleId,
+            provider: 'local',
         },
     });
 };
@@ -63,6 +62,13 @@ export const deleteToken = async (id) => {
     });
 };
 
+// Delete token by user ID and type
+export const deleteTokenByUserIdAndType = async (userId, type) => {
+    return await prisma.token.deleteMany({
+        where: { user_id: userId, type },
+    });
+};
+
 // Create a session
 export const createSession = async (sessionData) => {
     return await prisma.session.create({
@@ -94,5 +100,20 @@ export const findSessionByRefreshToken = async (refreshToken) => {
 export const deleteSession = async (id) => {
     return await prisma.session.delete({
         where: { id },
+    });
+};
+
+// Find all sessions by user ID
+export const findAllSessionsByUserId = async (userId) => {
+    return await prisma.session.findMany({
+        where: { user_id: userId },
+        orderBy: { createdAt: 'desc' },
+    });
+};
+
+// Delete all sessions for a user
+export const deleteAllSessionsByUserId = async (userId) => {
+    return await prisma.session.deleteMany({
+        where: { user_id: userId },
     });
 };
