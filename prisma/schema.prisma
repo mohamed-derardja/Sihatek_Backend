@@ -1,0 +1,451 @@
+generator client {
+    provider = "prisma-client-js"
+    output   = "../src/generated/prisma"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+
+model User {
+    id        Int      @id @default(autoincrement())
+    name      String
+    email     String   @unique
+    password  String?
+    phone     String?
+    provider  Provider @default(local)
+    isVerified Boolean  @default(false)
+    googleId  String?  @unique
+    
+    role      Role     @default(patient)
+    status    UserStatus @default(pending)
+    imageUrl String?
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    token     Token[] @relation("UserTokens")
+    sessions  Session[] @relation("UserSessions")
+    doctor Doctor? @relation("DoctorUser")
+    pharmacist Pharmacist? @relation("PharmacistUser")
+    patient Patient? @relation("PatientUser")
+    guestPatients GuestPatient[] @relation("GuestPatientCreator")
+    accessLogs AccessLog[] @relation("UserAccessLogs")
+    notifications Notification[] @relation("UserNotifications")
+    auditLogs AuditLog[] @relation("UserAuditLogs")
+
+    @@index([email])
+    @@index([name])
+    @@index([role])
+    @@index([status])
+}
+
+model Token {
+    id        Int      @id @default(autoincrement())
+    user_id   Int
+    token     String   @unique
+    type      TokenType   @default(verification)
+    expiresAt DateTime
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    user      User     @relation(fields: [user_id], references: [id], name: "UserTokens", onDelete: Cascade)
+
+    @@unique([user_id, type])
+    @@index([user_id])
+    @@index([type])
+    @@index([expiresAt])
+}
+
+model Session {
+    id        Int      @id @default(autoincrement())
+    user_id   Int
+    refresh_token     String?   @unique
+    expiresAt DateTime?
+    userAgent String?
+    ipAddress String?
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    user      User     @relation(fields: [user_id], references: [id], name: "UserSessions", onDelete: Cascade)
+
+    @@index([user_id])
+    @@index([expiresAt])
+}
+
+model Doctor {
+    id        Int      @id @default(autoincrement())
+    userId    Int      @unique
+    specialization String
+    licenseNumber String @unique
+
+    experienceYears Int?
+    bio             String?
+    clinicName      String?
+    clinicAddress   String?
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    user User @relation(fields: [userId], references: [id], name: "DoctorUser", onDelete: Cascade)
+    prescriptions Prescription[] @relation("DoctorPrescriptions")
+
+    @@index([specialization])
+    @@index([licenseNumber])
+}
+
+model Pharmacist {
+    id        Int      @id @default(autoincrement())
+    userId    Int      @unique
+    pharmacyName String
+    licenseNumber String @unique
+
+    location String
+    city String?
+    latitude Float?
+    longitude Float?
+    
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    user User @relation(fields: [userId], references: [id], name: "PharmacistUser", onDelete: Cascade)
+    inventory Inventory[] @relation("PharmacistInventory")
+    prescriptions Prescription[] @relation("PharmacistPrescriptions")
+    pharmacyResponses PharmacyResponse[] @relation("PharmacistPharmacyResponses")
+}
+
+
+model Patient {
+    id        Int      @id @default(autoincrement())
+    userId    Int      @unique
+    dateOfBirth DateTime?
+    gender Gender?
+    bloodType String?
+    height Float?
+    weight Float?
+    emergencyContactName String?
+    emergencyContactPhone String?
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    allergies Allergy[] @relation("PatientAllergies")
+    medicalConditions MedicalCondition[] @relation("PatientMedicalConditions")
+    medications PatientMedication[] @relation("PatientMedications")
+    prescriptions Prescription[] @relation("PatientPrescriptions")
+    drugRequests DrugRequest[] @relation("PatientDrugRequests")
+    accessCodes AccessCode[] @relation("PatientAccessCodes")
+    accessLogs AccessLog[] @relation("PatientAccessLogs")
+
+    user User @relation(fields: [userId], references: [id], name: "PatientUser", onDelete: Cascade)
+
+    @@index([bloodType])
+}
+
+model GuestPatient {
+    id Int @id @default(autoincrement())
+    name String
+    email String?
+    phone String?
+    gender Gender?
+    dateOfBirth DateTime?
+    bloodType String?
+    height Float?
+    weight Float?
+    createdById Int
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    createdBy User @relation(fields: [createdById], references: [id], name: "GuestPatientCreator", onDelete: Cascade)
+    medicalConditions MedicalCondition[] @relation("GuestPatientMedicalConditions")
+    prescriptions Prescription[] @relation("GuestPatientPrescriptions")
+
+    @@index([email])
+    @@index([bloodType])
+}
+
+model Allergy {
+    id        Int      @id @default(autoincrement())
+    patientId Int
+    allergen   String
+    reaction   String
+    severity   String
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    patient Patient @relation(fields: [patientId], references: [id], name: "PatientAllergies", onDelete: Cascade)
+}
+
+model MedicalCondition {
+    id        Int      @id @default(autoincrement())
+    patientId Int?
+    guestPatientId Int?
+    conditionName String
+    diagnosisDate DateTime
+    status MedicalConditionStatus
+
+    patient Patient? @relation(fields: [patientId], references: [id], name: "PatientMedicalConditions", onDelete: Cascade)
+    guestPatient GuestPatient? @relation(fields: [guestPatientId], references: [id], name: "GuestPatientMedicalConditions", onDelete: SetNull)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([conditionName])
+    @@index([status])
+}
+
+model PatientMedication {
+    id        Int      @id @default(autoincrement())
+    patientId Int
+    drugId    Int
+    dosage     String
+    frequency  String
+    startDate  DateTime
+    endDate    DateTime?
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    patient Patient @relation(fields: [patientId], references: [id], name: "PatientMedications", onDelete: Cascade)
+    drug Drug @relation(fields: [drugId], references: [id], name: "DrugPatientMedications", onDelete: Cascade)
+
+    @@unique([patientId, drugId, startDate])
+    @@index([startDate])
+    @@index([endDate])
+}
+
+model Drug {
+    id          Int      @id @default(autoincrement())
+    name        String   @unique
+    description String?
+
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+
+    inventory Inventory[] @relation("DrugInventory")
+    prescriptionItems PrescriptionItem[] @relation("DrugPrescriptionItems")
+    patientMedications PatientMedication[] @relation("DrugPatientMedications")
+    drugRequests DrugRequest[] @relation("DrugDrugRequests")
+
+    @@index([name])
+}
+
+model Inventory {
+    id          Int      @id @default(autoincrement())
+    pharmacistId Int
+    drugId      Int
+    quantity     Int
+    price       Float
+
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+
+    pharmacist Pharmacist @relation(fields: [pharmacistId], references: [id], name: "PharmacistInventory", onDelete: Cascade)
+    drug Drug @relation(fields: [drugId], references: [id], name: "DrugInventory", onDelete: Cascade)
+
+    @@unique([pharmacistId, drugId])
+    @@index([pharmacistId])
+    @@index([drugId])
+}
+
+model Prescription {
+    id          Int      @id @default(autoincrement())
+    doctorId    Int
+    patientId   Int?
+    guestPatientId Int?
+    pharmacistId Int?
+
+    status      PrescriptionStatus @default(pending)
+    qrCode       String?
+    expiresAt    DateTime?
+
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+
+    doctor Doctor @relation(fields: [doctorId], references: [id], name: "DoctorPrescriptions", onDelete: Cascade)
+    patient Patient? @relation(fields: [patientId], references: [id], name: "PatientPrescriptions", onDelete: Cascade)
+    guestPatient GuestPatient? @relation(fields: [guestPatientId], references: [id], name: "GuestPatientPrescriptions", onDelete: SetNull)
+    pharmacist Pharmacist? @relation(fields: [pharmacistId], references: [id], name: "PharmacistPrescriptions", onDelete: SetNull)
+    items PrescriptionItem[] @relation("PrescriptionItems")
+
+    @@index([status])
+    @@index([expiresAt])
+}
+
+model PrescriptionItem {
+    id             Int      @id @default(autoincrement())
+    prescriptionId Int
+    drugId         Int
+    dosage          String
+    frequency       String
+    duration        String
+    instructions     String?
+
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+
+    prescription Prescription @relation(fields: [prescriptionId], references: [id], name: "PrescriptionItems", onDelete: Cascade)
+    drug Drug @relation(fields: [drugId], references: [id], name: "DrugPrescriptionItems", onDelete: Cascade)
+
+    @@index([drugId])
+}
+
+model AccessCode {
+    id        Int      @id @default(autoincrement())
+    patientId Int
+    roleAllowed Role
+    code      String   @unique
+    expiresAt DateTime
+    isUsed    Boolean  @default(false)
+    action    ActionType
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    patient Patient @relation(fields: [patientId], references: [id], name: "PatientAccessCodes", onDelete: Cascade)
+    accessLogs AccessLog[] @relation("AccessCodeAccessLogs")
+
+    @@index([patientId])
+    @@index([roleAllowed])
+    @@index([expiresAt])
+}
+
+model AccessLog {
+    id        Int      @id @default(autoincrement())
+    patientId Int
+    accessedById Int
+    role Role
+
+    accessType ActionType
+    accessCodeId Int?
+    
+    timestamp DateTime @default(now())
+
+    patient Patient @relation(fields: [patientId], references: [id], name: "PatientAccessLogs", onDelete: Cascade)
+    accessedBy User @relation(fields: [accessedById], references: [id], name: "UserAccessLogs", onDelete: Cascade)
+    accessCode AccessCode? @relation(fields: [accessCodeId], references: [id], name: "AccessCodeAccessLogs", onDelete: SetNull)
+
+    @@index([patientId])
+    @@index([accessedById])
+    @@index([role])
+    @@index([accessType])
+}
+
+model DrugRequest {
+    id        Int      @id @default(autoincrement())
+    patientId Int
+    drugId    Int
+
+    status    DrugRequestStatus @default(open)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    patient Patient @relation(fields: [patientId], references: [id], name: "PatientDrugRequests", onDelete: Cascade)
+    drug Drug @relation(fields: [drugId], references: [id], name: "DrugDrugRequests", onDelete: Cascade)
+    pharmacyResponses PharmacyResponse[] @relation("DrugRequestPharmacyResponses")
+
+    @@index([patientId])
+    @@index([drugId])
+    @@index([status])
+}
+
+model PharmacyResponse {
+    id        Int      @id @default(autoincrement())
+    drugRequestId Int
+    pharmacistId Int
+    responseText String
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    drugRequest DrugRequest @relation(fields: [drugRequestId], references: [id], name: "DrugRequestPharmacyResponses", onDelete: Cascade)
+    pharmacist Pharmacist @relation(fields: [pharmacistId], references: [id], name: "PharmacistPharmacyResponses", onDelete: Cascade)
+
+    @@index([drugRequestId])
+    @@index([pharmacistId])
+}
+
+model Notification {
+    id        Int      @id @default(autoincrement())
+    userId    Int
+    message   String
+    type      String
+    isRead    Boolean  @default(false)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    user User @relation(fields: [userId], references: [id], name: "UserNotifications", onDelete: Cascade)
+
+    @@index([userId])
+    @@index([isRead])
+    @@index([type])
+}
+
+model AuditLog {
+    id        Int      @id @default(autoincrement())
+    userId    Int
+    action    String
+    timestamp DateTime @default(now())
+
+    user User @relation(fields: [userId], references: [id], name: "UserAuditLogs", onDelete: Cascade)
+}
+
+
+enum Provider {
+    local
+    google
+}
+
+enum Role {
+    patient
+    doctor
+    pharmacist
+    admin
+}
+
+enum UserStatus {
+    pending
+    active
+    rejected
+}
+
+enum TokenType {
+    verification
+    password_reset
+}
+
+enum Gender {
+    male
+    female
+}
+
+enum MedicalConditionStatus {
+    active
+    controlled
+    resolved
+    chronic
+}
+
+enum PrescriptionStatus {
+    pending
+    approved
+    rejected
+}
+
+enum ActionType {
+    view
+    edit
+}
+
+enum DrugRequestStatus {
+    open
+    resolved
+}
