@@ -1,33 +1,44 @@
-import { Router } from 'express';
+import express from 'express';
+import asyncHandler from '../utils/asyncHandler.js';
 import { authenticate } from '../middlewares/auth.middleware.js';
-import * as authController from '../controllers/auth.controller.js';
 
-const router = Router();
+const router = express.Router();
+
+// TODO: Import controllers
+// const authController = require('../controllers/authController');
 
 // Public routes
-router.post('/register/patient', authController.registerPatient);
+router.post('/register', asyncHandler(async (req, res) => {
+  // Register user
+}));
 
-router.post('/register/doctor', authController.registerDoctor);
+router.post('/login', asyncHandler(async (req, res) => {
+  // User login
+}));
 
-router.post('/register/pharmacy', authController.registerPharmacy);
+router.post('/verify-email', asyncHandler(async (req, res) => {
+  // Verify email with token
+}));
 
-router.post('/login', authController.login);
+router.post('/forgot-password', asyncHandler(async (req, res) => {
+  // Request password reset
+}));
 
-router.post('/google-auth', authController.googleAuth);
+router.post('/reset-password', asyncHandler(async (req, res) => {
+  // Reset password with token
+}));
 
-router.post('/verify-email', authController.verifyEmail);
-
-router.post('/resend-verification', authController.resendVerification);
-
-router.post('/forgot-password', authController.forgotPassword);
-
-router.post('/reset-password', authController.resetPassword);
-
-router.post('/refresh-token', authController.refreshToken);
+router.post('/refresh-token', asyncHandler(async (req, res) => {
+  // Refresh access token
+}));
 
 // Protected routes
-router.post('/logout', authenticate, authController.logout);
+router.post('/logout', authenticate, asyncHandler(async (req, res) => {
+  // User logout
+}));
 
-router.get('/me', authenticate, authController.getCurrentUser);
+router.post('/google-auth', asyncHandler(async (req, res) => {
+  // Google OAuth authentication
+}));
 
 export default router;

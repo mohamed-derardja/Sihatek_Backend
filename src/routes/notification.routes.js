@@ -1,7 +1,8 @@
-import { Router } from 'express';
+import express from 'express';
+import asyncHandler from '../utils/asyncHandler.js';
 import { authenticate } from '../middlewares/auth.middleware.js';
 
-const router = Router();
+const router = express.Router();
 
 // TODO: Import controllers
 // const notificationController = require('../controllers/notificationController');

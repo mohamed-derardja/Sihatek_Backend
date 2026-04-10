@@ -1,16 +1,17 @@
-import { Router } from 'express';
+import express from 'express';
+import asyncHandler from '../utils/asyncHandler.js';
 import { authenticate } from '../middlewares/auth.middleware.js';
 import { authorize } from '../middlewares/role.middleware.js';
 
-const router = Router();
+const router = express.Router();
 
 // TODO: Import controllers
 // const accessCodeController = require('../controllers/accessCodeController');
 
 // Get all access codes (admin)
-router.get('/', authenticate, authorize(['admin']),
+router.get('/', authenticate, authorize(['admin']), asyncHandler(async (req, res) => {
   // Get all access codes
-);
+}));
 
 // Get access code by ID
 router.get('/:id', authenticate, asyncHandler(async (req, res) => {
