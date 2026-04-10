@@ -1,8 +1,7 @@
-import express from 'express';
-import asyncHandler from '../utils/asyncHandler.js';
+import { Router } from 'express';
 import { authenticate } from '../middlewares/auth.middleware.js';
 
-const router = express.Router();
+const router = Router();
 
 // TODO: Import controllers
 // const userController = require('../controllers/userController');
@@ -72,4 +71,4 @@ router.get('/:id/notifications', authenticate, asyncHandler(async (req, res) => 
   // Get user's notifications
 }));
 
-module.exports = router;
+export default router;
