@@ -7,6 +7,8 @@ import { patientAccessPaths, patientAccessTags } from '../docs/patient-access-sw
 import { accessHistoryPaths, accessHistoryTags } from '../docs/access-history-swagger.js';
 import { pharmacyPaths, pharmacyTags } from '../docs/pharmacy-swagger.js';
 import { notificationPaths, notificationTags } from '../docs/notification-swagger.js';
+import { statisticsPaths, statisticsTags } from '../docs/statistics-swagger.js';
+import { settingsPaths, settingsTags } from '../docs/settings-swagger.js';
 
 const options = {
   definition: {
@@ -237,8 +239,8 @@ const options = {
         },
       },
     },
-    tags: [...authTags, ...drugTags, ...userTags, ...patientAccessTags, ...accessHistoryTags, ...pharmacyTags, ...notificationTags],
-    paths: { ...authPaths, ...drugPaths, ...userPaths, ...patientAccessPaths, ...accessHistoryPaths, ...pharmacyPaths, ...notificationPaths },
+    tags: [...authTags, ...drugTags, ...userTags, ...patientAccessTags, ...accessHistoryTags, ...pharmacyTags, ...notificationTags, ...statisticsTags, ...settingsTags],
+    paths: { ...authPaths, ...drugPaths, ...userPaths, ...patientAccessPaths, ...accessHistoryPaths, ...pharmacyPaths, ...notificationPaths, ...statisticsPaths, ...settingsPaths },
   },
   apis: [],
 };
