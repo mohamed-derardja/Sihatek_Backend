@@ -71,6 +71,9 @@ export const registerDoctor = asyncHandler(async (req, res) => {
         },
     });
 
+    // Send verification email
+    await sendVerificationEmail(result.email, result.verificationToken);
+
     res.status(201).json({
         success: true,
         message: 'Doctor registered successfully. Please verify your email.',
@@ -103,6 +106,9 @@ export const registerPharmacy = asyncHandler(async (req, res) => {
             location,
         },
     });
+
+    // Send verification email
+    await sendVerificationEmail(result.email, result.verificationToken);
 
     res.status(201).json({
         success: true,

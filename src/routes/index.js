@@ -7,6 +7,7 @@ import patientRoutes from './patient.routes.js';
 import prescriptionRoutes from './prescription.routes.js';
 import guestPatientRoutes from './guestPatient.routes.js';
 import patientAccessRoutes from './patientAccess.routes.js';
+import adminRoutes from './admin.routes.js';
 // import accessCodeRoutes from './accessCode.routes.js';
 // import accessLogRoutes from './accessLog.routes.js';
 // import auditLogRoutes from './auditLog.routes.js';
@@ -25,6 +26,7 @@ const setupRoutes = (app) => {
     app.use('/api/prescriptions/v1', prescriptionRoutes);
     app.use('/api/guest-patients/v1', guestPatientRoutes);
     app.use('/api/patient-access/v1', patientAccessRoutes);
+    app.use('/api/admin/v1', adminRoutes);
     // app.use('/api/access-codes/v1', accessCodeRoutes);
     // app.use('/api/access-logs/v1', accessLogRoutes);
     // app.use('/api/audit-logs/v1', auditLogRoutes);
