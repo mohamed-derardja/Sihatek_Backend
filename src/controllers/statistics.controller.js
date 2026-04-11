@@ -42,7 +42,7 @@ async function getPatientOverview(userId) {
         medications,
     ] = await Promise.all([
         prisma.patientAccessRequest.count({
-            where: { patientUserId: userId, status: 'pending' },
+            where: { patient: { userId }, status: 'pending' },
         }),
         prisma.patientAccessGrant.count({
             where: { patient: { userId }, isActive: true },
@@ -94,10 +94,10 @@ async function getDoctorOverview(userId) {
         notifications,
     ] = await Promise.all([
         prisma.patientAccessRequest.count({
-            where: { doctorUserId: userId },
+            where: { doctor: { userId } },
         }),
         prisma.patientAccessGrant.count({
-            where: { doctorId: { userId }, isActive: true },
+            where: { doctor: { userId }, isActive: true },
         }),
         prisma.prescription.count({
             where: { doctor: { userId } },
@@ -108,11 +108,11 @@ async function getDoctorOverview(userId) {
     ]);
 
     const accessRequestsPending = await prisma.patientAccessRequest.count({
-        where: { doctorUserId: userId, status: 'pending' },
+        where: { doctor: { userId }, status: 'pending' },
     });
 
     const accessRequestsApproved = await prisma.patientAccessRequest.count({
-        where: { doctorUserId: userId, status: 'approved' },
+        where: { doctor: { userId }, status: 'approved' },
     });
 
     const unreadNotifications = await prisma.notification.count({
