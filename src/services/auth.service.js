@@ -117,7 +117,8 @@ export const loginUser = async (email, password, userAgent, ipAddress) => {
     // Find user
     const user = await authModel.findUserByEmail(email);
     if (!user || !user.password) {
-        throw Errors.USER_NOT_FOUND();
+        // Return generic invalid credentials to prevent user enumeration
+        throw Errors.INVALID_CREDENTIALS();
     }
 
     // Check if user is verified
