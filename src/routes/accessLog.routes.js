@@ -14,13 +14,13 @@ router.get('/:id', authenticate, authorize(['admin']), asyncHandler(async (req, 
   // Get specific access log
 }));
 
-// Get access logs for patient
+// Get access logs for patient (authenticated users can view their own or admins)
 router.get('/patient/:patientId', authenticate, asyncHandler(async (req, res) => {
   // Get access logs for specific patient
 }));
 
-// Get access logs by user
-router.get('/user/:userId', authenticate, asyncHandler(async (req, res) => {
+// Get access logs by user (admin only)
+router.get('/user/:userId', authenticate, authorize(['admin']), asyncHandler(async (req, res) => {
   // Get access logs created by specific user
 }));
 

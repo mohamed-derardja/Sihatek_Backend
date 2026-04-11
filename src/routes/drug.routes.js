@@ -11,8 +11,8 @@ router.get('/search', drugController.searchDrugs);
 router.get('/:id', drugController.getDrugById);
 
 // Protected routes (admin only)
-router.post('/', authenticate, drugController.createDrug);
-router.patch('/:id', authenticate, drugController.updateDrug);
-router.delete('/:id', authenticate, drugController.deleteDrug);
+router.post('/', authenticate, authorize(['admin']), drugController.createDrug);
+router.patch('/:id', authenticate, authorize(['admin']), drugController.updateDrug);
+router.delete('/:id', authenticate, authorize(['admin']), drugController.deleteDrug);
 
 export default router;

@@ -9,7 +9,7 @@ router.get('/', authenticate, authorize(['admin']),
   // Get all access codes
 );
 
-// Get access code by ID
+// Get access code by ID (authenticated users)
 router.get('/:id', authenticate, asyncHandler(async (req, res) => {
   // Get specific access code
 }));
@@ -24,7 +24,7 @@ router.post('/validate/:code', asyncHandler(async (req, res) => {
   // Validate if access code is valid and not expired
 }));
 
-// Use access code
+// Use access code (any user can use valid code)
 router.post('/:id/use', asyncHandler(async (req, res) => {
   // Mark access code as used
 }));
