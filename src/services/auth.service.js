@@ -161,6 +161,7 @@ export const loginUser = async (email, password, userAgent, ipAddress) => {
             accessToken,
             refreshToken: session.refresh_token,
         },
+        sessionId: session.id,
     };
 };
 

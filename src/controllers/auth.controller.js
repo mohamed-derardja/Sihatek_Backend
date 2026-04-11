@@ -145,6 +145,7 @@ export const login = asyncHandler(async (req, res) => {
         message: 'Logged in successfully',
         data: {
             user: result.user,
+            sessionId: result.sessionId,
         },
     });
 });
