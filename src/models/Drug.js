@@ -7,6 +7,21 @@ export const getAllDrugs = async (page = 1, limit = 20) => {
         prisma.drug.findMany({
             skip,
             take: limit,
+            select: {
+                id: true,
+                name: true,
+                description: true,
+                composition: true,
+                uses: true,
+                sideEffects: true,
+                imageUrl: true,
+                manufacturer: true,
+                excellentReviewPercent: true,
+                averageReviewPercent: true,
+                poorReviewPercent: true,
+                createdAt: true,
+                updatedAt: true,
+            },
             orderBy: { createdAt: 'desc' },
         }),
         prisma.drug.count(),
@@ -24,6 +39,21 @@ export const searchDrugs = async (query, page = 1, limit = 20) => {
             },
             skip,
             take: limit,
+            select: {
+                id: true,
+                name: true,
+                description: true,
+                composition: true,
+                uses: true,
+                sideEffects: true,
+                imageUrl: true,
+                manufacturer: true,
+                excellentReviewPercent: true,
+                averageReviewPercent: true,
+                poorReviewPercent: true,
+                createdAt: true,
+                updatedAt: true,
+            },
             orderBy: { name: 'asc' },
         }),
         prisma.drug.count({
@@ -39,6 +69,21 @@ export const searchDrugs = async (query, page = 1, limit = 20) => {
 export const getDrugById = async (id) => {
     return await prisma.drug.findUnique({
         where: { id },
+        select: {
+            id: true,
+            name: true,
+            description: true,
+            composition: true,
+            uses: true,
+            sideEffects: true,
+            imageUrl: true,
+            manufacturer: true,
+            excellentReviewPercent: true,
+            averageReviewPercent: true,
+            poorReviewPercent: true,
+            createdAt: true,
+            updatedAt: true,
+        },
     });
 };
 
