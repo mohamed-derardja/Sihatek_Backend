@@ -39,13 +39,6 @@ export const searchDrugs = async (query, page = 1, limit = 20) => {
 export const getDrugById = async (id) => {
     return await prisma.drug.findUnique({
         where: { id },
-        include: {
-            prescriptionItems: {
-                include: { prescription: true },
-            },
-            patientMedications: true,
-            drugRequests: true,
-        },
     });
 };
 
